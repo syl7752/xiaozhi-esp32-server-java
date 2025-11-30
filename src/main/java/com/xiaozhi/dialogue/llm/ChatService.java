@@ -337,73 +337,74 @@ public class ChatService {
 
     public void chatStreamBySentence(ChatSession session, String message, boolean useFunctionCall,
             TriConsumer<String, Boolean, Boolean> sentenceHandler) {
-        try {
-            // 在对话开始时清除工具调用记录，确保每次对话都是干净的
-            XiaoZhiToolCallingManager.clearRecentToolCall(session.getSessionId());
-            
-            // 创建流式响应监听器
-            StreamResponseListener streamListener = new TokenStreamResponseListener(session, message, sentenceHandler, useFunctionCall);
-            final StringBuilder toolName = new StringBuilder(); // 当前句子的缓冲区
-            final StringBuilder fullResponse = new StringBuilder(); // 完整响应的缓冲区
-            final List<ChatResponse> chatResponses = new ArrayList<>(); // 收集所有的ChatResponse
-            final AtomicBoolean hasToolCalls = new AtomicBoolean(false); // 标记是否有工具调用
-            
-            AtomicReference<Usage> llmUsage = new AtomicReference<>();
-            // 调用现有的流式方法
-            chatStream(session, message, useFunctionCall)
-                    .subscribe(
-                            chatResponse -> {
-                                // 收集所有的ChatResponse用于后续处理
-                                chatResponses.add(chatResponse);
-                                
-                                String token = chatResponse.getResult() == null
-                                        || chatResponse.getResult().getOutput() == null
-                                        || chatResponse.getResult().getOutput().getText() == null ? ""
-                                                : chatResponse.getResult().getOutput().getText();
-                                if (!token.isEmpty()) {
-                                    fullResponse.append(token);
-                                    streamListener.onToken(token);
-                                }
-                                
-                                // 检查是否有工具调用
-                                if (useFunctionCall) {
-                                    Generation generation = chatResponse.getResult();
-                                    if (generation != null) {
-                                        // 检查AssistantMessage是否有工具调用
-                                        AssistantMessage assistantMessage = generation.getOutput();
-                                        if (assistantMessage.hasToolCalls() || !CollectionUtils.isEmpty(assistantMessage.getToolCalls())) {
-                                            hasToolCalls.set(true);
-                                            if (!CollectionUtils.isEmpty(assistantMessage.getToolCalls())) {
-                                                String toolCallName = assistantMessage.getToolCalls().get(0).name();
-                                                if (StringUtils.hasText(toolCallName)) {
-                                                    toolName.setLength(0);
-                                                    toolName.append(toolCallName);
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                                if(chatResponse.getMetadata().getUsage() != null && chatResponse.getMetadata().getUsage().getTotalTokens() > 0) {
-                                    llmUsage.set(chatResponse.getMetadata().getUsage());
-                                }
-                            },
-                            streamListener::onError,
-                            () -> {
-                                // 使用提取的方法获取工具名称
-                                String extractedToolName = getToolName(session, message, useFunctionCall, 
-                                        chatResponses, fullResponse.toString(), hasToolCalls.get());
-                                if (StringUtils.hasText(extractedToolName)) {
-                                    toolName.setLength(0);
-                                    toolName.append(extractedToolName);
-                                }
-                                
-                                streamListener.onComplete(toolName.toString(), llmUsage.get());
-                            });
-        } catch (Exception e) {
-            logger.error("处理LLM时出错: {}", e.getMessage(), e);
-            // 发送错误信号
-            sentenceHandler.accept("抱歉，我在处理您的请求时遇到了问题。", true, true);
-        }
+        sentenceHandler.accept("你好啊", true, true);
+//        try {
+//            // 在对话开始时清除工具调用记录，确保每次对话都是干净的
+//            XiaoZhiToolCallingManager.clearRecentToolCall(session.getSessionId());
+//
+//            // 创建流式响应监听器
+//            StreamResponseListener streamListener = new TokenStreamResponseListener(session, message, sentenceHandler, useFunctionCall);
+//            final StringBuilder toolName = new StringBuilder(); // 当前句子的缓冲区
+//            final StringBuilder fullResponse = new StringBuilder(); // 完整响应的缓冲区
+//            final List<ChatResponse> chatResponses = new ArrayList<>(); // 收集所有的ChatResponse
+//            final AtomicBoolean hasToolCalls = new AtomicBoolean(false); // 标记是否有工具调用
+//
+//            AtomicReference<Usage> llmUsage = new AtomicReference<>();
+//            // 调用现有的流式方法
+//            chatStream(session, message, useFunctionCall)
+//                    .subscribe(
+//                            chatResponse -> {
+//                                // 收集所有的ChatResponse用于后续处理
+//                                chatResponses.add(chatResponse);
+//
+//                                String token = chatResponse.getResult() == null
+//                                        || chatResponse.getResult().getOutput() == null
+//                                        || chatResponse.getResult().getOutput().getText() == null ? ""
+//                                                : chatResponse.getResult().getOutput().getText();
+//                                if (!token.isEmpty()) {
+//                                    fullResponse.append(token);
+//                                    streamListener.onToken(token);
+//                                }
+//
+//                                // 检查是否有工具调用
+//                                if (useFunctionCall) {
+//                                    Generation generation = chatResponse.getResult();
+//                                    if (generation != null) {
+//                                        // 检查AssistantMessage是否有工具调用
+//                                        AssistantMessage assistantMessage = generation.getOutput();
+//                                        if (assistantMessage.hasToolCalls() || !CollectionUtils.isEmpty(assistantMessage.getToolCalls())) {
+//                                            hasToolCalls.set(true);
+//                                            if (!CollectionUtils.isEmpty(assistantMessage.getToolCalls())) {
+//                                                String toolCallName = assistantMessage.getToolCalls().get(0).name();
+//                                                if (StringUtils.hasText(toolCallName)) {
+//                                                    toolName.setLength(0);
+//                                                    toolName.append(toolCallName);
+//                                                }
+//                                            }
+//                                        }
+//                                    }
+//                                }
+//                                if(chatResponse.getMetadata().getUsage() != null && chatResponse.getMetadata().getUsage().getTotalTokens() > 0) {
+//                                    llmUsage.set(chatResponse.getMetadata().getUsage());
+//                                }
+//                            },
+//                            streamListener::onError,
+//                            () -> {
+//                                // 使用提取的方法获取工具名称
+//                                String extractedToolName = getToolName(session, message, useFunctionCall,
+//                                        chatResponses, fullResponse.toString(), hasToolCalls.get());
+//                                if (StringUtils.hasText(extractedToolName)) {
+//                                    toolName.setLength(0);
+//                                    toolName.append(extractedToolName);
+//                                }
+//
+//                                streamListener.onComplete(toolName.toString(), llmUsage.get());
+//                            });
+//        } catch (Exception e) {
+//            logger.error("处理LLM时出错: {}", e.getMessage(), e);
+//            // 发送错误信号
+//            sentenceHandler.accept("抱歉，我在处理您的请求时遇到了问题。", true, true);
+//        }
     }
 
 

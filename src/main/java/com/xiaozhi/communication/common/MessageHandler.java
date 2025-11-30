@@ -105,6 +105,28 @@ public class MessageHandler {
         device.setDeviceId(deviceId);
         device.setSessionId(sessionId);
         sessionManager.registerDevice(sessionId, device);
+        // 如果设备未绑定，尝试自动绑定到默认智能体
+//        if (device.getRoleId() == null) {
+//            try {
+//                // 系统默认admin用户
+//                device.setUserId(1);
+//                device.setType("test");
+//                device.setDeviceName("test");
+//                int result = deviceService.add(device);
+//                if (result > 0) {
+//                    logger.info("设备自动绑定到默认智能体成功 - DeviceId: {}", deviceId);
+//                    // 重新查询设备信息以获取绑定后的完整信息
+//                    SysDevice updatedDevice = deviceService.selectDeviceById(deviceId);
+//                    if (updatedDevice != null) {
+//                        device = updatedDevice;
+//                    }
+//                } else {
+//                    logger.warn("设备自动绑定失败，设备可能已存在 - DeviceId: {}", deviceId);
+//                }
+//            } catch (Exception e) {
+//                logger.error("设备自动绑定到默认智能体失败 - DeviceId: {}", deviceId, e);
+//            }
+//        }
         // 如果已绑定，则初始化其他内容
         if (!ObjectUtils.isEmpty(device) && device.getRoleId() != null) {
             initializeBoundDevice(chatSession, device);
@@ -127,7 +149,8 @@ public class MessageHandler {
         chatSession.setFunctionSessionHolder(toolsSessionHolder);
         // 从数据库获取角色描述。device.getRoleId()表示当前设备的当前活跃角色，或者上次退出时的活跃角色。
         SysRole role = roleService.selectRoleById(device.getRoleId());
-        Conversation conversation = conversationFactory.initConversation(device, role, sessionId);
+        Conversation conversation = conversationFactory.
+                initConversation(device, role, sessionId);
         chatSession.setConversation(conversation);
 
         //以上同步处理结束后，再启动虚拟线程进行设备初始化，确保chatSession中已设置的sysDevice信息

@@ -44,6 +44,7 @@ services:
         condition: service_healthy
     ports:
       - "8091:8091"
+      - "8092:8092"
     networks:
       - app-network
     environment:
